@@ -133,6 +133,20 @@ DECLARE_SOA_TABLE(CF2ProngTrackmls, "AOD", "CF2PRONGTRACKML", //! Reduced track 
 using CF2ProngTrackml = CF2ProngTrackmls::iterator;
 //------
 
+namespace cfmfttrack
+{
+DECLARE_SOA_COLUMN(Pt, pt, float);             //! pT (GeV/c)
+DECLARE_SOA_COLUMN(Eta, eta, float);           //! Pseudorapidity
+DECLARE_SOA_COLUMN(Phi, phi, float);           //! Phi angle
+DECLARE_SOA_COLUMN(NClusters, nClusters, int); //! Number of clusters
+} // namespace cfmfttrack
+DECLARE_SOA_TABLE(CF2ProngTracks, "AOD", "CF2PRONGTRACK", //! Reduced track table
+                  o2::soa::Index<>,
+                  cftrack::CFCollisionId,
+                  mfttrack::Pt, mfttrack::Eta, mfttrack::Phi, mfttrack::NClusters);
+using CFMftTrack = CFMftTracks::iterator;
+//------
+
 } // namespace o2::aod
 
 #endif // PWGCF_DATAMODEL_CORRELATIONSDERIVED_H_
