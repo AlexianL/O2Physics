@@ -2088,8 +2088,8 @@ struct HfTaskFlow {
                                FilteredTracksWDcaSel const& tracks,
                                aod::FV0As const&)
   {
-    auto getMultiplicity = [](FilteredMcCollisions::iterator const& mcCollision) {
-      auto multiplicity = mcCollision.multMCPVz();
+    auto getMultiplicity = [](FilteredCollisionsWSelMult::iterator const& collision) {
+      auto multiplicity = collision.numContrib();
       return multiplicity;
     };
 
@@ -2110,7 +2110,7 @@ struct HfTaskFlow {
         auto slicedTriggerTracks = tracks.sliceBy(perColTracks, collision1.globalIndex());
         const auto& fv0 = collision2.foundFV0();
 
-        fillCorrelations<CorrelationContainer::kCFStepReconstructed>(mixedEvent, slicedtriggerTracks, fv0, multiplicity, mcCollision.posZ(), false);
+        fillCorrelations<CorrelationContainer::kCFStepReconstructed>(mixedEvent, slicedTriggerTracks, fv0, getMultiplicity(collision1), collision1.posZ(), false);
       }
     }
   }
