@@ -18,8 +18,10 @@
 #include "PWGCF/Core/CorrelationContainer.h"
 #include "PWGCF/Core/PairCuts.h"
 #include "PWGHF/Core/HfHelper.h"
+#include "PWGHF/DataModel/AliasTables.h"
 #include "PWGHF/DataModel/CandidateReconstructionTables.h"
 #include "PWGHF/DataModel/CandidateSelectionTables.h"
+#include "PWGHF/DataModel/TrackIndexSkimmingTables.h"
 #include "PWGHF/Utils/utilsPid.h"
 #include "PWGMM/Mult/DataModel/bestCollisionTable.h"
 
@@ -32,7 +34,6 @@
 #include <CCDB/BasicCCDBManager.h>
 #include <CCDB/CcdbApi.h>
 #include <CommonConstants/MathConstants.h>
-#include <CommonConstants/PhysicsConstants.h>
 #include <DataFormatsParameters/GRPMagField.h>
 #include <DetectorsCommonDataFormats/AlignParam.h>
 #include <FT0Base/Geometry.h>
@@ -41,6 +42,7 @@
 #include <Framework/AnalysisDataModel.h>
 #include <Framework/AnalysisHelpers.h>
 #include <Framework/AnalysisTask.h>
+#include <Framework/Array2D.h>
 #include <Framework/BinningPolicy.h>
 #include <Framework/Configurable.h>
 #include <Framework/DataTypes.h>
@@ -50,13 +52,11 @@
 #include <Framework/InitContext.h>
 #include <Framework/Logger.h>
 #include <Framework/O2DatabasePDGPlugin.h>
-#include <Framework/StepTHn.h>
 #include <Framework/runDataProcessing.h>
 #include <MathUtils/Utils.h>
 
 #include <THn.h>
 #include <TPDGCode.h>
-#include <TParticlePDG.h>
 #include <TString.h>
 
 #include <sys/types.h>
@@ -247,13 +247,12 @@ struct HfTaskFlow {
     Configurable<float> mftMaxDCAz{"mftMaxDCAz", 2.0f, "Cut on dcaZ for MFT tracks"};
     Configurable<int> nClustersMftTrack{"nClustersMftTrack", 5, "Minimum number of clusters for the reconstruction of MFT tracks"};
     Configurable<float> ptMftTrackMax{"ptMftTrackMax", 10.0f, "max value of MFT tracks pT when used in cut function"};
-    Configurable<float> ptMftTrackMin{"ptMftTrackMin", 0.2f, "min value of MFT tracks pT when used in cut function"};
+    Configurable<float> ptMftTrackMin{"ptMftTrackMin", 0.f, "min value of MFT tracks pT when used in cut function"};
     Configurable<bool> useMftPtCut{"useMftPtCut", false, "if true, use the Mft pt function cut"};
   } configMft;
 
   TF1* fPtDepDCAxy = nullptr;
 
-  HfHelper hfHelper;
   SliceCache cache;
   Service<o2::framework::O2DatabasePDG> pdg;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
@@ -328,22 +327,22 @@ struct HfTaskFlow {
 
   struct : ConfigurableGroup {
     std::string prefix = "ConfigAxis_group";
-    ConfigurableAxis axisMass{"axisMass", {120, 1.5848, 2.1848}, "axis of invariant mass of candidates"};
+    ConfigurableAxis axisMass{"axisMass", {40, 1.5848, 2.1848}, "axis of invariant mass of candidates"};
     ConfigurableAxis binsMixingMultiplicity{"binsMixingMultiplicity", {VARIABLE_WIDTH, 0, 5, 10, 20, 30, 40, 50, 100.1}, "multiplicity bins for event mixing"};
-    ConfigurableAxis binsMixingVertex{"binsMixingVertex", {14, -7, 7}, "vertex bins for event mixing"};
-    ConfigurableAxis axisEtaEfficiency{"axisEtaEfficiency", {20, -1.0, 1.0}, "eta axis for efficiency histograms"};
+    ConfigurableAxis binsMixingVertex{"binsMixingVertex", {20, -10, 10}, "vertex bins for event mixing"};
+    ConfigurableAxis axisEtaEfficiency{"axisEtaEfficiency", {1, -1.0, 1.0}, "eta axis for efficiency histograms"};
     ConfigurableAxis axisEtaAssociated{"axisEtaAssociated", {48, -4, -2}, "eta axis for MFT histograms"};
     ConfigurableAxis axisEtaTrigger{"axisEtaTrigger", {48, -1, 1}, "eta axis for TPC histograms"};
     ConfigurableAxis axisDeltaPhi{"axisDeltaPhi", {72, -PIHalf, PIHalf * 3}, "delta phi axis for histograms"};
     ConfigurableAxis axisDeltaEta{"axisDeltaEta", {48, -2.4, 2.4}, "delta eta axis for histograms"};
     ConfigurableAxis axisMultiplicity{"axisMultiplicity", {VARIABLE_WIDTH, 0, 5, 10, 20, 30, 40, 50, 100.1}, "multiplicity axis for histograms"};
     ConfigurableAxis axisPhi{"axisPhi", {72, 0, TwoPI}, "phi axis for histograms"};
-    ConfigurableAxis axisPt{"axisPt", {72, 0, 36}, "pt axis for histograms"};
-    ConfigurableAxis axisPtAssoc{"axisPtAssoc", {VARIABLE_WIDTH, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0}, "pt associated axis for histograms"};
-    ConfigurableAxis axisPtEfficiency{"axisPtEfficiency", {VARIABLE_WIDTH, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25, 3.5, 3.75, 4.0, 4.5, 5.0, 6.0, 7.0, 8.0}, "pt axis for efficiency histograms"};
-    ConfigurableAxis axisPtTrigger{"axisPtTrigger", {VARIABLE_WIDTH, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0}, "pt trigger axis for histograms"};
-    ConfigurableAxis axisVertex{"axisVertex", {14, -7, 7}, "vertex axis for histograms"};
-    ConfigurableAxis axisVertexEfficiency{"axisVertexEfficiency", {10, -10, 10}, "vertex axis for efficiency histograms"};
+    ConfigurableAxis axisPt{"axisPt", {VARIABLE_WIDTH, 0.2, 0.5, 1, 1.5, 2, 3, 4, 6, 10}, "pt axis for histograms"};
+    ConfigurableAxis axisPtAssoc{"axisPtAssoc", {VARIABLE_WIDTH, 0.2, 0.5, 1, 1.5, 2, 3, 4, 6, 10}, "pt associated axis for histograms"};
+    ConfigurableAxis axisPtEfficiency{"axisPtEfficiency", {VARIABLE_WIDTH, 0.2, 0.5, 1, 1.5, 2, 3, 4, 6, 10}, "pt axis for efficiency histograms"};
+    ConfigurableAxis axisPtTrigger{"axisPtTrigger", {VARIABLE_WIDTH, 0.2, 0.5, 1, 1.5, 2, 3, 4, 6, 10}, "pt trigger axis for histograms"};
+    ConfigurableAxis axisVertex{"axisVertex", {20, -10, 10}, "vertex axis for histograms"};
+    ConfigurableAxis axisVertexEfficiency{"axisVertexEfficiency", {1, -10, 10}, "vertex axis for efficiency histograms"};
   } configAxis;
 
   HistogramRegistry registry{"registry"};
@@ -501,8 +500,7 @@ struct HfTaskFlow {
     //  Initialization of histograms and CorrelationContainers for TpcMft cases
     //  =========================
 
-    // if (doprocessSameTpcMftChCh || doprocessSameTpcMftChChReassociated || doprocessSameTpcMftChChReassociated3d || doprocessSameTpcMftChChNonAmbiguous) {
-    if (doprocessSameTpcMftChCh || doprocessSameTpcMftChChReassociated || doprocessSameTpcMftChChNonAmbiguous) {
+    if (doprocessSameTpcMftChCh || doprocessSameTpcMftChChReassociated || doprocessSameTpcMftChChReassociated3d || doprocessSameTpcMftChChNonAmbiguous) {
       addHistograms<Data, TpcMft, ChPartChPart>();
       addMftHistograms();
 
@@ -593,7 +591,7 @@ struct HfTaskFlow {
     //  Initialization of histograms and CorrelationContainers for MftFt0a cases
     //  =========================
 
-    if (doprocessSameMftFt0aChCh || doprocessSameMftFt0aChChReassociated || doprocessSameMftFt0aChChNonAmbiguous) {
+    if (doprocessSameMftFt0aChCh || doprocessSameMftFt0aChChReassociated || doprocessSameMftFt0aChChReassociated3d || doprocessSameMftFt0aChChNonAmbiguous) {
       addHistograms<Data, MftFt0a, ChPartChPart>();
       addMftHistograms();
 
@@ -827,7 +825,7 @@ struct HfTaskFlow {
   void getChannel(TFT0s const& ft0, std::size_t const& iCh, int& id, int fitType)
   {
     if (fitType == isFT0C) {
-      id = ft0.channelC()[iCh];
+      id = ft0.channelC()[iCh] + kMinFt0cCell;
     } else if (fitType == isFT0A) {
       id = ft0.channelA()[iCh];
     } else {
@@ -899,7 +897,7 @@ struct HfTaskFlow {
       if (configCandidates.etaCandidateMax >= 0. && std::abs(etaCandidate) > configCandidates.etaCandidateMax) {
         return false;
       }
-      if (configCandidates.yCandRecoMax >= 0. && std::abs(hfHelper.yLc(candidate)) > configCandidates.yCandRecoMax) {
+      if (configCandidates.yCandRecoMax >= 0. && std::abs(HfHelper::yLc(candidate)) > configCandidates.yCandRecoMax) {
         return false;
       }
       return true;
@@ -911,7 +909,7 @@ struct HfTaskFlow {
       if (configCandidates.etaCandidateMax >= 0. && std::abs(etaCandidate) > configCandidates.etaCandidateMax) {
         return false;
       }
-      if (configCandidates.yCandRecoMax >= 0. && std::abs(hfHelper.yD0(candidate)) > configCandidates.yCandRecoMax) {
+      if (configCandidates.yCandRecoMax >= 0. && std::abs(HfHelper::yD0(candidate)) > configCandidates.yCandRecoMax) {
         return false;
       }
       return true;
@@ -1016,9 +1014,9 @@ struct HfTaskFlow {
         }
         fillingHFcontainer = true;
         if constexpr (std::is_same_v<HfCandidatesSelD0, TTracksTrig>) { // If D0
-          invmass = hfHelper.invMassD0ToPiK(track1);
+          invmass = HfHelper::invMassD0ToPiK(track1);
         } else { // If Lc
-          invmass = hfHelper.invMassLcToPKPi(track1);
+          invmass = HfHelper::invMassLcToPKPi(track1);
         }
       }
 
@@ -1216,9 +1214,9 @@ struct HfTaskFlow {
         }
         fillingHFcontainer = true;
         if constexpr (std::is_same_v<HfCandidatesSelD0, TTracksTrig>) { // If D0
-          invmass = hfHelper.invMassD0ToPiK(track1);
+          invmass = HfHelper::invMassD0ToPiK(track1);
         } else { // If Lc
-          invmass = hfHelper.invMassLcToPKPi(track1);
+          invmass = HfHelper::invMassLcToPKPi(track1);
         }
       }
 
@@ -1230,7 +1228,7 @@ struct HfTaskFlow {
       }
 
       // FILL QA PLOTS for trigger particle
-      if (sameEvent && (cutAmbiguousTracks == false)) {
+      if (sameEvent) {
         if constexpr (std::is_same_v<HfCandidatesSelD0, TTracksTrig>) {
           fillTriggerQa<Data, TpcMft, D0ChPart>(multiplicity, eta1, phi1, pt1);
         } else if constexpr (std::is_same_v<HfCandidatesSelLc, TTracksTrig>) {
@@ -1325,7 +1323,7 @@ struct HfTaskFlow {
         }
 
         // FILL QA PLOTS for associated particle
-        if (sameEvent && (loopCounter == 1) && (!cutAmbiguousTracks)) {
+        if (sameEvent && (loopCounter == 1)) {
           if constexpr (std::is_same_v<HfCandidatesSelD0, TTracksTrig>) {
             fillAssociatedQa<Data, TpcMft, D0ChPart>(multiplicity, eta2, phi2);
             registry.fill(HIST("Data/Mft/hPtMft"), pt2);
@@ -1379,9 +1377,9 @@ struct HfTaskFlow {
         }
         fillingHFcontainer = true;
         if constexpr (std::is_same_v<HfCandidatesSelD0, TTracksTrig>) { // If D0
-          invmass = hfHelper.invMassD0ToPiK(track1);
+          invmass = HfHelper::invMassD0ToPiK(track1);
         } else { // If Lc
-          invmass = hfHelper.invMassLcToPKPi(track1);
+          invmass = HfHelper::invMassLcToPKPi(track1);
         }
       }
 
@@ -1965,7 +1963,6 @@ struct HfTaskFlow {
   }
   PROCESS_SWITCH(HfTaskFlow, processSameTpcMftChChReassociated, "DATA : Process same-event correlations for TPC-MFT h-h case reassociated", false);
 
-  /*
   void processSameTpcMftChChReassociated3d(FilteredCollisionsWSelMult::iterator const& collision,
                                            soa::SmallGroups<aod::BestCollisionsFwd3d> const& reassociatedMftTracks,
                                            FilteredTracksWDcaSel const& tracks,
@@ -1990,7 +1987,6 @@ struct HfTaskFlow {
     fillCorrelationsReassociatedMftTracks(sameEvent, CorrelationContainer::CFStep::kCFStepReconstructed, tracks, reassociatedMftTracks, multiplicity, collision.posZ(), true, false);
   }
   PROCESS_SWITCH(HfTaskFlow, processSameTpcMftChChReassociated3d, "DATA : Process same-event correlations for TPC-MFT h-h case 3d reassociated", false);
-  */
 
   void processSameTpcMftChChNonAmbiguous(FilteredCollisionsWSelMult::iterator const& collision,
                                          soa::SmallGroups<aod::BestCollisionsFwd> const& reassociatedMftTracks,
@@ -2425,6 +2421,29 @@ struct HfTaskFlow {
     }
   }
   PROCESS_SWITCH(HfTaskFlow, processSameMftFt0aChChReassociated, "DATA : Process same-event correlations for MFT-FT0-A h-h case reassociated", false);
+
+  void processSameMftFt0aChChReassociated3d(FilteredCollisionsWSelMult::iterator const& collision,
+                                            soa::SmallGroups<aod::BestCollisionsFwd3d> const& reassociatedMftTracks,
+                                            FilteredMftTracks const&,
+                                            aod::FT0s const& ft0as)
+  {
+    if (!(isAcceptedCollision(collision, true))) {
+      return;
+    }
+
+    if (collision.has_foundFT0()) {
+      const auto& ft0 = collision.foundFT0();
+      const auto multiplicity = getMultiplicityEstimator(collision, true);
+
+      if (multiplicity < configCollision.minMultiplicity || multiplicity > configCollision.maxMultiplicity) {
+        return;
+      }
+
+      sameEvent->fillEvent(multiplicity, CorrelationContainer::kCFStepReconstructed);
+      fillCorrelationsFITReassociatedMftTracks(sameEvent, CorrelationContainer::CFStep::kCFStepReconstructed, reassociatedMftTracks, ft0, ft0as, multiplicity, collision.posZ(), true, false, isFT0A);
+    }
+  }
+  PROCESS_SWITCH(HfTaskFlow, processSameMftFt0aChChReassociated3d, "DATA : Process same-event correlations for MFT-FT0-A h-h case reassociated 3d", false);
 
   void processSameMftFt0aChChNonAmbiguous(FilteredCollisionsWSelMult::iterator const& collision,
                                           soa::SmallGroups<aod::BestCollisionsFwd> const& reassociatedMftTracks,
