@@ -237,8 +237,12 @@ struct LongrangeMaker {
   Produces<aod::TrkLRTables> tracksLRTable;
   Produces<aod::Ft0aLRTables> ft0aLRTable;
   Produces<aod::Ft0cLRTables> ft0cLRTable;
-  Produces<aod::MftTrkLRTables> mftLRTable;
-  Produces<aod::MftBestTrkLRTables> mftbestLRTable;
+  // Produces<aod::MftTrkLRTables> mftLRTable;
+  // Produces<aod::MftBestTrkLRTables> mftbestLRTable;
+  Produces<aod::MftAllTracksLRTables> mftAllTracksLRTable;
+  Produces<aod::MftReasso2dLRTables> mftReasso2dLRTable;
+  Produces<aod::MftReasso3dLRTables> mftReasso3dLRTable;
+  Produces<aod::MftNonAmbiLRTables> mftNonAmbiLRTable;
   Produces<aod::V0TrkLRTables> v0LRTable;
 
   Produces<aod::UpcCollLRTables> outupccol;
@@ -262,7 +266,8 @@ struct LongrangeMaker {
 
   void processData(CollTable::iterator const& col, TrksTable const& tracks,
                    aod::FT0s const&, MftTrkTable const& mfttracks,
-                   soa::SmallGroups<aod::BestCollisionsFwd> const& retracks,
+                   soa::SmallGroups<aod::BestCollisionsFwd> const& retracks2d,
+                   soa::SmallGroups<aod::BestCollisionsFwd3d> const& retracks3d,
                    aod::V0Datas const& V0s, aod::BCsWithTimestamps const&)
   {
     if (!isEventSelected(col)) {
@@ -315,21 +320,41 @@ struct LongrangeMaker {
         continue;
       auto phi = track.phi();
       o2::math_utils::bringTo02Pi(phi);
-      mftLRTable(collisionLRTable.lastIndex(), track.pt(), track.eta(), phi);
+      mftAllTracksLRTable(collisionLRTable.lastIndex(), track.pt(), track.eta(), phi);
     }
 
-    if (retracks.size() > 0) {
-      for (const auto& retrack : retracks) {
-        if (std::abs(retrack.bestDCAXY()) > cfgmfttrksel.cfigMftDcaxy) {
+    if (retracks2d.size() > 0) {
+      for (const auto& retrack2d : retracks2d) {
+        if (std::abs(retrack2d.bestDCAXY()) > cfgmfttrksel.cfigMftDcaxy) {
           continue; // does not point to PV properly
         }
-        auto track = retrack.mfttrack();
+        auto track = retrack2d.mfttrack();
         if (!isMftTrackSelected(track)) {
           continue;
         }
         auto phi = track.phi();
         o2::math_utils::bringTo02Pi(phi);
-        mftbestLRTable(collisionLRTable.lastIndex(), track.pt(), track.eta(), phi);
+        // mftReasso2dLRTable(collisionLRTable.lastIndex(), track.pt(), track.eta(), phi);
+        mftReasso2dLRTable(retrack2d.bestCollisionId(), track.pt(), track.eta(), phi);
+
+        if (retrack2d.ambDegree() == 1) {
+          mftNonAmbiLRTable(collisionLRTable.lastIndex(), track.pt(), track.eta(), phi);
+        }
+      }
+    }
+
+    if (retracks3d.size() > 0) {
+      for (const auto& retrack3d : retracks3d) {
+        if (std::abs(retrack3d.bestDCAXY()) > cfgmfttrksel.cfigMftDcaxy) {
+          continue; // does not point to PV properly
+        }
+        auto track = retrack3d.mfttrack();
+        if (!isMftTrackSelected(track)) {
+          continue;
+        }
+        auto phi = track.phi();
+        o2::math_utils::bringTo02Pi(phi);
+        mftReasso3dLRTable(retrack3d.bestCollisionId(), track.pt(), track.eta(), phi);
       }
     }
 

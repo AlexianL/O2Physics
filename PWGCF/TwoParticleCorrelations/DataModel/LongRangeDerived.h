@@ -138,21 +138,37 @@ DECLARE_SOA_TABLE(V0TrkLRTables, "AOD", "V0TRKLRTABLE",
                   lrcorrtrktable::V0Type);
 using V0TrkLRTable = V0TrkLRTables::iterator;
 
-DECLARE_SOA_TABLE(MftTrkLRTables, "AOD", "MFTTRKLRTABLE",
+DECLARE_SOA_TABLE(MftAllTracksLRTables, "AOD", "MFTALLTRACKSLRTABLE",
                   o2::soa::Index<>,
                   lrcorrtrktable::CollLRTableId,
                   lrcorrtrktable::Pt,
                   lrcorrtrktable::Eta,
                   lrcorrtrktable::Phi);
-using MftTrkLRTable = MftTrkLRTables::iterator;
+using MftTrkLRTable = MftAllTracksLRTables::iterator;
 
-DECLARE_SOA_TABLE(MftBestTrkLRTables, "AOD", "MFTBESTTRKLRTABLE",
+DECLARE_SOA_TABLE(MftReasso2dLRTables, "AOD", "MFTREASSO2DLRTABLE",
                   o2::soa::Index<>,
                   lrcorrtrktable::CollLRTableId,
                   lrcorrtrktable::Pt,
                   lrcorrtrktable::Eta,
                   lrcorrtrktable::Phi);
-using MftBestTrkLRTable = MftBestTrkLRTables::iterator;
+using MftBestTrkLRTable = MftReasso2dLRTables::iterator;
+
+DECLARE_SOA_TABLE(MftReasso3dLRTables, "AOD", "MFTREASSO3DLRTABLE",
+                  o2::soa::Index<>,
+                  lrcorrtrktable::CollLRTableId,
+                  lrcorrtrktable::Pt,
+                  lrcorrtrktable::Eta,
+                  lrcorrtrktable::Phi);
+using MftBestTrkLRTable = MftReasso3dLRTables::iterator;
+
+DECLARE_SOA_TABLE(MftNonAmbiLRTables, "AOD", "MFTNONAMBILRTABLE",
+                  o2::soa::Index<>,
+                  lrcorrtrktable::CollLRTableId,
+                  lrcorrtrktable::Pt,
+                  lrcorrtrktable::Eta,
+                  lrcorrtrktable::Phi);
+using MftBestTrkLRTable = MftNonAmbiLRTables::iterator;
 
 DECLARE_SOA_TABLE(TrkLRUpcTables, "AOD", "TRKLRUPCTABLE",
                   o2::soa::Index<>,
