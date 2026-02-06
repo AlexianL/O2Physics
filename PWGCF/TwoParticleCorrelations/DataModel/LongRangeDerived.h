@@ -13,6 +13,7 @@
 ///
 /// \brief task derived table definition for long range correlation
 /// \author Abhi Modak (abhi.modak@cern.ch)
+/// \author Alexian Lejeune (alexian.lejeune@cern.ch)
 /// \since October 28, 2025
 
 #ifndef PWGCF_TWOPARTICLECORRELATIONS_DATAMODEL_LONGRANGEDERIVED_H_
@@ -144,7 +145,7 @@ DECLARE_SOA_TABLE(MftAllTracksLRTables, "AOD", "MFTALLTRACKSLRTABLE",
                   lrcorrtrktable::Pt,
                   lrcorrtrktable::Eta,
                   lrcorrtrktable::Phi);
-using MftTrkLRTable = MftAllTracksLRTables::iterator;
+using MftAllTracksLRTable = MftAllTracksLRTables::iterator;
 
 DECLARE_SOA_TABLE(MftReasso2dLRTables, "AOD", "MFTREASSO2DLRTABLE",
                   o2::soa::Index<>,
@@ -152,7 +153,7 @@ DECLARE_SOA_TABLE(MftReasso2dLRTables, "AOD", "MFTREASSO2DLRTABLE",
                   lrcorrtrktable::Pt,
                   lrcorrtrktable::Eta,
                   lrcorrtrktable::Phi);
-using MftBestTrkLRTable = MftReasso2dLRTables::iterator;
+using MftReasso2dLRTable = MftReasso2dLRTables::iterator;
 
 DECLARE_SOA_TABLE(MftReasso3dLRTables, "AOD", "MFTREASSO3DLRTABLE",
                   o2::soa::Index<>,
@@ -160,7 +161,7 @@ DECLARE_SOA_TABLE(MftReasso3dLRTables, "AOD", "MFTREASSO3DLRTABLE",
                   lrcorrtrktable::Pt,
                   lrcorrtrktable::Eta,
                   lrcorrtrktable::Phi);
-using MftBestTrkLRTable = MftReasso3dLRTables::iterator;
+using MftReasso3dLRTable = MftReasso3dLRTables::iterator;
 
 DECLARE_SOA_TABLE(MftNonAmbiLRTables, "AOD", "MFTNONAMBILRTABLE",
                   o2::soa::Index<>,
@@ -168,7 +169,7 @@ DECLARE_SOA_TABLE(MftNonAmbiLRTables, "AOD", "MFTNONAMBILRTABLE",
                   lrcorrtrktable::Pt,
                   lrcorrtrktable::Eta,
                   lrcorrtrktable::Phi);
-using MftBestTrkLRTable = MftNonAmbiLRTables::iterator;
+using MftNonAmbiLRTable = MftNonAmbiLRTables::iterator;
 
 DECLARE_SOA_TABLE(TrkLRUpcTables, "AOD", "TRKLRUPCTABLE",
                   o2::soa::Index<>,

@@ -13,6 +13,7 @@
 ///
 /// \brief task for long range correlation analysis based on derived table
 /// \author Abhi Modak (abhi.modak@cern.ch)
+/// \author Alexian Lejeune (alexian.lejeune@cern.ch)
 /// \since November 05, 2025
 
 #include "PWGCF/Core/CorrelationContainer.h"
@@ -84,6 +85,7 @@ struct LongrangecorrDerived {
   Configurable<int> cfgPidMask{"cfgPidMask", 0, "Selection bitmask for the TPC particle"};
   Configurable<int> cfgV0Mask{"cfgV0Mask", 0, "Selection bitmask for the V0 particle"};
   Configurable<float> cfgVtxCut{"cfgVtxCut", 10.0f, "Vertex Z range to consider"};
+  Configurable<int> nSamples{"nSamples", 10, "number of different samples for correlations"};
 
   Configurable<float> cfgFv0Cut{"cfgFv0Cut", 50.0f, "FV0A threshold"};
   Configurable<float> cfgFt0aCut{"cfgFt0aCut", 100.0f, "FT0A threshold"};
@@ -118,10 +120,14 @@ struct LongrangecorrDerived {
 
   using CollsTable = aod::CollLRTables;
   using TrksTable = aod::TrkLRTables;
-  using MftTrksTable = aod::MftTrkLRTables;
+  // using MftTrksTable = aod::MftTrkLRTables;
+  // using MftbestTrksTable = aod::MftBestTrkLRTables;
+  using MftAllTracksTable = aod::MftAllTracksLRTables;
+  using MftReasso2dTable = aod::MftReasso2dLRTables;
+  using MftReasso3dTable = aod::MftReasso3dLRTables;
+  using MftNonAmbiTable = aod::MftNonAmbiLRTables;
   using Ft0aTrksTable = aod::Ft0aLRTables;
   using Ft0cTrksTable = aod::Ft0cLRTables;
-  using MftbestTrksTable = aod::MftBestTrkLRTables;
   using V0TrksTable = aod::V0TrkLRTables;
 
   using UpcCollsTable = soa::Join<aod::UpcCollLRTables, aod::UpcSgCollLRTables, aod::ZdcLRTables>;
@@ -133,8 +139,12 @@ struct LongrangecorrDerived {
   using V0TrksUpcTable = aod::V0TrkLRUpcTables;
 
   Preslice<TrksTable> perColTpc = aod::lrcorrtrktable::collLRTableId;
-  Preslice<MftTrksTable> perColMft = aod::lrcorrtrktable::collLRTableId;
-  Preslice<MftbestTrksTable> perColMftbest = aod::lrcorrtrktable::collLRTableId;
+  // Preslice<MftTrksTable> perColMft = aod::lrcorrtrktable::collLRTableId;
+  // Preslice<MftbestTrksTable> perColMftbest = aod::lrcorrtrktable::collLRTableId;
+  Preslice<MftAllTracksTable> perColMftAllTracks = aod::lrcorrtrktable::collLRTableId;
+  Preslice<MftReasso2dTable> perColMftReasso2d = aod::lrcorrtrktable::collLRTableId;
+  Preslice<MftReasso3dTable> perColMftReasso3d = aod::lrcorrtrktable::collLRTableId;
+  Preslice<MftNonAmbiTable> perColMftNonAmbi = aod::lrcorrtrktable::collLRTableId;
   Preslice<Ft0aTrksTable> perColFt0a = aod::lrcorrtrktable::collLRTableId;
   Preslice<Ft0cTrksTable> perColFt0c = aod::lrcorrtrktable::collLRTableId;
   Preslice<V0TrksTable> perColV0 = aod::lrcorrtrktable::collLRTableId;
@@ -250,6 +260,8 @@ struct LongrangecorrDerived {
   template <CorrelationContainer::CFStep step, typename TTarget, typename TTriggers, typename TAssocs>
   void fillCorrHist(TTarget target, TTriggers const& triggers, TAssocs const& assocs, bool mixing, float vz, float multiplicity, float eventWeight)
   {
+    int sampleIndex = gRandom->Uniform(0, nSamples);
+
     for (auto const& triggerTrack : triggers) {
       if constexpr (std::experimental::is_detected<HasTpcTrack, typename TTriggers::iterator>::value) {
         if (cfgPidMask != 0 && (cfgPidMask & (1u << static_cast<uint32_t>(triggerTrack.trackType()))) == 0u)
@@ -262,8 +274,10 @@ struct LongrangecorrDerived {
         fillTrigTrackQA(triggerTrack);
         if constexpr (std::experimental::is_detected<HasInvMass, typename TTriggers::iterator>::value) {
           histos.fill(HIST("Trig_hist"), vz, multiplicity, triggerTrack.pt(), triggerTrack.invMass(), eventWeight);
+          target->getTriggerHist()->Fill(CorrelationContainer::kCFStepReconstructed, triggerTrack.pt(), multiplicity, vz, triggerTrack.invMass(), sampleIndex, eventWeight);
         } else {
           histos.fill(HIST("Trig_hist"), vz, multiplicity, triggerTrack.pt(), 1.0, eventWeight);
+          target->getTriggerHist()->Fill(CorrelationContainer::kCFStepReconstructed, triggerTrack.pt(), multiplicity, vz, 1.0, sampleIndex, eventWeight);
         }
       }
       for (auto const& assoTrack : assocs) {
@@ -339,12 +353,42 @@ struct LongrangecorrDerived {
     processSame(col, tracks, ft0cs);
   }
 
-  void processTpcmftSE(CollsTable::iterator const& col, TrksTable const& tracks, MftTrksTable const& mfts)
+  void processTpcmftSE(CollsTable::iterator const& col, TrksTable const& tracks, MftAllTracksTable const& mfts)
   {
     processSame(col, tracks, mfts);
   }
 
-  void processMftft0aSE(CollsTable::iterator const& col, MftTrksTable const& mfts, Ft0aTrksTable const& ft0as)
+  void processTpcmftReasso2dSE(CollsTable::iterator const& col, TrksTable const& tracks, MftReasso2dTable const& mfts)
+  {
+    processSame(col, tracks, mfts);
+  }
+
+  void processTpcmftReasso3dSE(CollsTable::iterator const& col, TrksTable const& tracks, MftReasso3dTable const& mfts)
+  {
+    processSame(col, tracks, mfts);
+  }
+
+  void processTpcmftNonAmbiSE(CollsTable::iterator const& col, TrksTable const& tracks, MftNonAmbiTable const& mfts)
+  {
+    processSame(col, tracks, mfts);
+  }
+
+  void processMftft0aSE(CollsTable::iterator const& col, MftAllTracksTable const& mfts, Ft0aTrksTable const& ft0as)
+  {
+    processSame(col, mfts, ft0as);
+  }
+
+  void processMftft0aReasso2dSE(CollsTable::iterator const& col, MftReasso2dTable const& mfts, Ft0aTrksTable const& ft0as)
+  {
+    processSame(col, mfts, ft0as);
+  }
+
+  void processMftft0aReasso3dSE(CollsTable::iterator const& col, MftReasso3dTable const& mfts, Ft0aTrksTable const& ft0as)
+  {
+    processSame(col, mfts, ft0as);
+  }
+
+  void processMftft0aNonAmbiSE(CollsTable::iterator const& col, MftNonAmbiTable const& mfts, Ft0aTrksTable const& ft0as)
   {
     processSame(col, mfts, ft0as);
   }
@@ -354,25 +398,40 @@ struct LongrangecorrDerived {
     processSame(col, tracks, ft0as);
   }
 
-  void processV0mftSE(CollsTable::iterator const& col, V0TrksTable const& tracks, MftTrksTable const& mfts)
+  void processV0mftSE(CollsTable::iterator const& col, V0TrksTable const& tracks, MftAllTracksTable const& mfts)
   {
     processSame(col, tracks, mfts);
   }
 
-  void processTpcmftbestSE(CollsTable::iterator const& col, TrksTable const& tracks, MftbestTrksTable const& mfts)
+  void processV0mftReasso2dSE(CollsTable::iterator const& col, V0TrksTable const& tracks, MftReasso2dTable const& mfts)
   {
     processSame(col, tracks, mfts);
   }
 
-  void processMftbestft0aSE(CollsTable::iterator const& col, MftbestTrksTable const& mfts, Ft0aTrksTable const& ft0as)
-  {
-    processSame(col, mfts, ft0as);
-  }
-
-  void processV0mftbestSE(CollsTable::iterator const& col, V0TrksTable const& tracks, MftbestTrksTable const& mfts)
+  void processV0mftReasso3dSE(CollsTable::iterator const& col, V0TrksTable const& tracks, MftReasso3dTable const& mfts)
   {
     processSame(col, tracks, mfts);
   }
+
+  void processV0mftNonAmbiSE(CollsTable::iterator const& col, V0TrksTable const& tracks, MftNonAmbiTable const& mfts)
+  {
+    processSame(col, tracks, mfts);
+  }
+
+  // void processTpcmftbestSE(CollsTable::iterator const& col, TrksTable const& tracks, MftbestTrksTable const& mfts)
+  // {
+  //   processSame(col, tracks, mfts);
+  // }
+
+  // void processMftbestft0aSE(CollsTable::iterator const& col, MftbestTrksTable const& mfts, Ft0aTrksTable const& ft0as)
+  // {
+  //   processSame(col, mfts, ft0as);
+  // }
+
+  // void processV0mftbestSE(CollsTable::iterator const& col, V0TrksTable const& tracks, MftbestTrksTable const& mfts)
+  // {
+  //   processSame(col, tracks, mfts);
+  // }
 
   void processTpcft0aME(CollsTable const& cols, TrksTable const& tracks, Ft0aTrksTable const& ft0as)
   {
@@ -384,12 +443,42 @@ struct LongrangecorrDerived {
     processMixed(cols, tracks, ft0cs);
   }
 
-  void processTpcmftME(CollsTable const& cols, TrksTable const& tracks, MftTrksTable const& mfts)
+  void processTpcmftME(CollsTable const& cols, TrksTable const& tracks, MftAllTracksTable const& mfts)
   {
     processMixed(cols, tracks, mfts);
   }
 
-  void processMftft0aME(CollsTable const& cols, MftTrksTable const& mfts, Ft0aTrksTable const& ft0as)
+  void processTpcmftReasso2dME(CollsTable const& cols, TrksTable const& tracks, MftReasso2dTable const& mfts)
+  {
+    processMixed(cols, tracks, mfts);
+  }
+
+  void processTpcmftReasso3dME(CollsTable const& cols, TrksTable const& tracks, MftReasso3dTable const& mfts)
+  {
+    processMixed(cols, tracks, mfts);
+  }
+
+  void processTpcmftNonAmbiME(CollsTable const& cols, TrksTable const& tracks, MftNonAmbiTable const& mfts)
+  {
+    processMixed(cols, tracks, mfts);
+  }
+
+  void processMftft0aME(CollsTable const& cols, MftAllTracksTable const& mfts, Ft0aTrksTable const& ft0as)
+  {
+    processMixed(cols, mfts, ft0as);
+  }
+
+  void processMftft0aReasso2dME(CollsTable const& cols, MftReasso2dTable const& mfts, Ft0aTrksTable const& ft0as)
+  {
+    processMixed(cols, mfts, ft0as);
+  }
+
+  void processMftft0aReasso3dME(CollsTable const& cols, MftReasso3dTable const& mfts, Ft0aTrksTable const& ft0as)
+  {
+    processMixed(cols, mfts, ft0as);
+  }
+
+  void processMftft0aNonAmbiME(CollsTable const& cols, MftNonAmbiTable const& mfts, Ft0aTrksTable const& ft0as)
   {
     processMixed(cols, mfts, ft0as);
   }
@@ -399,25 +488,40 @@ struct LongrangecorrDerived {
     processMixed(cols, tracks, ft0as);
   }
 
-  void processV0mftME(CollsTable const& cols, V0TrksTable const& tracks, MftTrksTable const& mfts)
+  void processV0mftME(CollsTable const& cols, V0TrksTable const& tracks, MftAllTracksTable const& mfts)
   {
     processMixed(cols, tracks, mfts);
   }
 
-  void processTpcmftbestME(CollsTable const& cols, TrksTable const& tracks, MftbestTrksTable const& mfts)
+  void processV0mftReasso2dME(CollsTable const& cols, V0TrksTable const& tracks, MftReasso2dTable const& mfts)
   {
     processMixed(cols, tracks, mfts);
   }
 
-  void processMftbestft0aME(CollsTable const& cols, MftbestTrksTable const& mfts, Ft0aTrksTable const& ft0as)
-  {
-    processMixed(cols, mfts, ft0as);
-  }
-
-  void processV0mftbestME(CollsTable const& cols, V0TrksTable const& tracks, MftbestTrksTable const& mfts)
+  void processV0mftReasso3dME(CollsTable const& cols, V0TrksTable const& tracks, MftReasso3dTable const& mfts)
   {
     processMixed(cols, tracks, mfts);
   }
+
+  void processV0mftNonAmbiME(CollsTable const& cols, V0TrksTable const& tracks, MftNonAmbiTable const& mfts)
+  {
+    processMixed(cols, tracks, mfts);
+  }
+
+  // void processTpcmftbestME(CollsTable const& cols, TrksTable const& tracks, MftbestTrksTable const& mfts)
+  // {
+  //   processMixed(cols, tracks, mfts);
+  // }
+
+  // void processMftbestft0aME(CollsTable const& cols, MftbestTrksTable const& mfts, Ft0aTrksTable const& ft0as)
+  // {
+  //   processMixed(cols, mfts, ft0as);
+  // }
+
+  // void processV0mftbestME(CollsTable const& cols, V0TrksTable const& tracks, MftbestTrksTable const& mfts)
+  // {
+  //   processMixed(cols, tracks, mfts);
+  // }
 
   void processUpcTpcft0aSE(UpcCollsTable::iterator const& col, TrksUpcTable const& tracks, Ft0aTrksUpcTable const& ft0as)
   {
@@ -542,18 +646,36 @@ struct LongrangecorrDerived {
   PROCESS_SWITCH(LongrangecorrDerived, processTpcft0cME, "mixed event TPC vs FT0C", false);
   PROCESS_SWITCH(LongrangecorrDerived, processTpcmftSE, "same event TPC vs MFT", false);
   PROCESS_SWITCH(LongrangecorrDerived, processTpcmftME, "mixed event TPC vs MFT", false);
+  PROCESS_SWITCH(LongrangecorrDerived, processTpcmftReasso2dSE, "same event TPC vs MFT Reasso2d", false);
+  PROCESS_SWITCH(LongrangecorrDerived, processTpcmftReasso2dME, "mixed event TPC vs MFT Reasso2d", false);
+  PROCESS_SWITCH(LongrangecorrDerived, processTpcmftReasso3dSE, "same event TPC vs MFT Reasso3d", false);
+  PROCESS_SWITCH(LongrangecorrDerived, processTpcmftReasso3dME, "mixed event TPC vs MFT Reasso3d", false);
+  PROCESS_SWITCH(LongrangecorrDerived, processTpcmftNonAmbiSE, "same event TPC vs MFT NonAmbi", false);
+  PROCESS_SWITCH(LongrangecorrDerived, processTpcmftNonAmbiME, "mixed event TPC vs MFT NonAmbi", false);
   PROCESS_SWITCH(LongrangecorrDerived, processMftft0aSE, "same event MFT vs FT0A", false);
   PROCESS_SWITCH(LongrangecorrDerived, processMftft0aME, "mixed event MFT vs FT0A", false);
+  PROCESS_SWITCH(LongrangecorrDerived, processMftft0aReasso2dSE, "same event MFT vs FT0A Reasso2d", false);
+  PROCESS_SWITCH(LongrangecorrDerived, processMftft0aReasso2dME, "mixed event MFT vs FT0A Reasso2d", false);
+  PROCESS_SWITCH(LongrangecorrDerived, processMftft0aReasso3dSE, "same event MFT vs FT0A Reasso3d", false);
+  PROCESS_SWITCH(LongrangecorrDerived, processMftft0aReasso3dME, "mixed event MFT vs FT0A Reasso3d", false);
+  PROCESS_SWITCH(LongrangecorrDerived, processMftft0aNonAmbiSE, "same event MFT vs FT0A NonAmbi", false);
+  PROCESS_SWITCH(LongrangecorrDerived, processMftft0aNonAmbiME, "mixed event MFT vs FT0A NonAmbi", false);
   PROCESS_SWITCH(LongrangecorrDerived, processV0ft0aSE, "same event V0 vs FT0A", false);
   PROCESS_SWITCH(LongrangecorrDerived, processV0ft0aME, "mixed event V0 vs FT0A", false);
   PROCESS_SWITCH(LongrangecorrDerived, processV0mftSE, "same event V0 vs MFT", false);
   PROCESS_SWITCH(LongrangecorrDerived, processV0mftME, "mixed event V0 vs MFT", false);
-  PROCESS_SWITCH(LongrangecorrDerived, processTpcmftbestSE, "same event TPC vs best MFT", false);
-  PROCESS_SWITCH(LongrangecorrDerived, processTpcmftbestME, "mixed event TPC vs best MFT", false);
-  PROCESS_SWITCH(LongrangecorrDerived, processMftbestft0aSE, "same event best MFT vs FT0A", false);
-  PROCESS_SWITCH(LongrangecorrDerived, processMftbestft0aME, "mixed event best MFT vs FT0A", false);
-  PROCESS_SWITCH(LongrangecorrDerived, processV0mftbestSE, "same event V0 vs best MFT", false);
-  PROCESS_SWITCH(LongrangecorrDerived, processV0mftbestME, "mixed event V0 vs best MFT", false);
+  PROCESS_SWITCH(LongrangecorrDerived, processV0mftReasso2dSE, "same event V0 vs MFT Reasso2d", false);
+  PROCESS_SWITCH(LongrangecorrDerived, processV0mftReasso2dME, "mixed event V0 vs MFT Reasso2d", false);
+  PROCESS_SWITCH(LongrangecorrDerived, processV0mftReasso3dSE, "same event V0 vs MFT Reasso3d", false);
+  PROCESS_SWITCH(LongrangecorrDerived, processV0mftReasso3dME, "mixed event V0 vs MFT Reasso3d", false);
+  PROCESS_SWITCH(LongrangecorrDerived, processV0mftNonAmbiSE, "same event V0 vs MFT NonAmbi", false);
+  PROCESS_SWITCH(LongrangecorrDerived, processV0mftNonAmbiME, "mixed event V0 vs MFT NonAmbi", false);
+  // PROCESS_SWITCH(LongrangecorrDerived, processTpcmftbestSE, "same event TPC vs best MFT", false);
+  // PROCESS_SWITCH(LongrangecorrDerived, processTpcmftbestME, "mixed event TPC vs best MFT", false);
+  // PROCESS_SWITCH(LongrangecorrDerived, processMftbestft0aSE, "same event best MFT vs FT0A", false);
+  // PROCESS_SWITCH(LongrangecorrDerived, processMftbestft0aME, "mixed event best MFT vs FT0A", false);
+  // PROCESS_SWITCH(LongrangecorrDerived, processV0mftbestSE, "same event V0 vs best MFT", false);
+  // PROCESS_SWITCH(LongrangecorrDerived, processV0mftbestME, "mixed event V0 vs best MFT", false);
   PROCESS_SWITCH(LongrangecorrDerived, processUpcTpcft0aSE, "same UPC event TPC vs FT0A", false);
   PROCESS_SWITCH(LongrangecorrDerived, processUpcTpcft0aME, "mixed UPC event TPC vs FT0A", false);
   PROCESS_SWITCH(LongrangecorrDerived, processUpcTpcft0cSE, "same UPC event TPC vs FT0C", false);

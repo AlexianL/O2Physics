@@ -13,6 +13,7 @@
 ///
 /// \brief task derived table definition for long range correlation
 /// \author Abhi Modak (abhi.modak@cern.ch)
+/// \author Alexian Lejeune (alexian.lejeune@cern.ch)
 /// \since October 28, 2025
 
 #include "PWGCF/Core/CorrelationContainer.h"
