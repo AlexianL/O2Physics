@@ -19,7 +19,7 @@
 #include "Common/CCDB/RCTSelectionFlags.h"
 <<<<<<< changes_mftReasso
 #include "Common/Core/fwdtrackUtilities.h"
-=======
+  =======
 >>>>>>> master
 #include "Common/DataModel/CollisionAssociationTables.h"
 #include "Common/DataModel/EventSelection.h"
@@ -30,9 +30,9 @@
 #include <CCDB/CcdbApi.h>
 #include <CommonConstants/MathConstants.h>
 #include <DataFormatsParameters/GRPMagField.h>
-<<<<<<< changes_mftReasso
+  <<<<<<< changes_mftReasso
 #include <DetectorsBase/Propagator.h>
-=======
+  =======
 >>>>>>> master
 #include <Framework/AnalysisDataModel.h>
 #include <Framework/AnalysisHelpers.h>
@@ -45,9 +45,9 @@
 #include <Framework/Logger.h>
 #include <Framework/O2DatabasePDGPlugin.h>
 #include <Framework/runDataProcessing.h>
-<<<<<<< changes_mftReasso
+  <<<<<<< changes_mftReasso
 #include <ReconstructionDataFormats/TrackFwd.h>
-=======
+  =======
 >>>>>>> master
 
 #include <THn.h>
@@ -65,7 +65,7 @@
 #include <unordered_map>
 #include <vector>
 
-using namespace o2;
+  using namespace o2;
 using namespace o2::aod::rctsel;
 using namespace o2::aod::track;
 using namespace o2::constants::math;
