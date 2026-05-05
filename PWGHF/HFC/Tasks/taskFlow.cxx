@@ -379,6 +379,7 @@ struct HfTaskFlow {
     ConfigurableAxis axisMass{"axisMass", {1, 1.5848, 2.1848}, "axis of invariant mass of candidates"};
     ConfigurableAxis binsMixingMultiplicity{"binsMixingMultiplicity", {VARIABLE_WIDTH, 0, 5, 10, 20, 30, 40, 50, 100.1}, "multiplicity bins for event mixing"};
     ConfigurableAxis binsMixingVertex{"binsMixingVertex", {20, -10, 10}, "vertex bins for event mixing"};
+    ConfigurableAxis axisNClusters{"axisNClusters", {11, 0, 10}, "axis for number of clusters of MFT tracks"};
     ConfigurableAxis axisEtaEfficiency{"axisEtaEfficiency", {1, -1.0, 1.0}, "eta axis for efficiency histograms"};
     ConfigurableAxis axisEtaAssociated{"axisEtaAssociated", {48, -4, -2}, "eta axis for MFT histograms"};
     ConfigurableAxis axisEtaTrigger{"axisEtaTrigger", {48, -1, 1}, "eta axis for TPC histograms"};
@@ -465,6 +466,8 @@ struct HfTaskFlow {
     }
 
     registry.add("Data/Mft/hPtMft", "", {HistType::kTH1D, {configAxis.axisPt}});
+    registry.add("Data/Mft/hPtVsClustersLTF", "", {HistType::kTH2D, {configAxis.axisPt, configAxis.axisNClusters}});
+    registry.add("Data/Mft/hPtVsClustersCA", "", {HistType::kTH2D, {configAxis.axisPt, configAxis.axisNClusters}});
     registry.add("Data/Mft/hNMftTracks", "", {HistType::kTH1F, {configAxis.axisMultiplicity}});
     registry.add("Data/Mft/hNBestCollisionFwd", "", {HistType::kTH1F, {configAxis.axisMultiplicity}});
   }
@@ -939,7 +942,7 @@ struct HfTaskFlow {
       LOGF(fatal, "Cor Index %d out of range", fitType);
     }
     registry.fill(HIST("Data/FT0Amp"), rID, amplitude);
-    amplitude = amplitude / cstFT0RelGain[iCh];
+    amplitude = amplitude / cstFT0RelGain[id];
     registry.fill(HIST("Data/FT0AmpCorr"), rID, amplitude);
   }
 
@@ -1153,6 +1156,7 @@ struct HfTaskFlow {
     if (mftTrack.isCA()) {
       if (fillHistograms) {
         registry.fill(HIST("Data/Mft/hMftTracksSelection"), MftTrackSelectionStep::IsCA);
+        registry.fill(HIST("Data/Mft/hPtVsClustersCA"), mftTrack.pt(), mftTrack.nClusters());
       }
 
       if (configMft.useOnlyLTFTracks) {
@@ -1162,6 +1166,7 @@ struct HfTaskFlow {
     } else {
       if (fillHistograms) {
         registry.fill(HIST("Data/Mft/hMftTracksSelection"), MftTrackSelectionStep::IsLTF);
+        registry.fill(HIST("Data/Mft/hPtVsClustersLTF"), mftTrack.pt(), mftTrack.nClusters());
       }
 
       if (configMft.useOnlyCATracks) {
