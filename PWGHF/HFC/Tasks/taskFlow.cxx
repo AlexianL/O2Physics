@@ -2863,7 +2863,7 @@ struct HfTaskFlow {
 
       float centralityWeight = 1.0f;
       if (configCollision.useCentrality) {
-        getCentralityWeight(centralityWeight, getCentralityEstimator(collision1, true));
+        getCentralityWeight(centralityWeight, getCentralityEstimator(collision1, false));
         if (getCentralityEstimator(collision1, false) < configCollision.minCentrality || getCentralityEstimator(collision1, false) >= configCollision.maxCentrality) {
           continue;
         }
@@ -2924,7 +2924,7 @@ struct HfTaskFlow {
 
       float centralityWeight = 1.0f;
       if (configCollision.useCentrality) {
-        getCentralityWeight(centralityWeight, getCentralityEstimator(collision1, true));
+        getCentralityWeight(centralityWeight, getCentralityEstimator(collision1, false));
         if (getCentralityEstimator(collision1, false) < configCollision.minCentrality || getCentralityEstimator(collision1, false) >= configCollision.maxCentrality) {
           continue;
         }
@@ -2986,7 +2986,7 @@ struct HfTaskFlow {
 
       float centralityWeight = 1.0f;
       if (configCollision.useCentrality) {
-        getCentralityWeight(centralityWeight, getCentralityEstimator(collision1, true));
+        getCentralityWeight(centralityWeight, getCentralityEstimator(collision1, false));
         if (getCentralityEstimator(collision1, false) < configCollision.minCentrality || getCentralityEstimator(collision1, false) >= configCollision.maxCentrality) {
           continue;
         }
@@ -3155,7 +3155,7 @@ struct HfTaskFlow {
 
         float centralityWeight = 1.0f;
         if (configCollision.useCentrality) {
-          getCentralityWeight(centralityWeight, getCentralityEstimator(collision1, true));
+          getCentralityWeight(centralityWeight, getCentralityEstimator(collision1, false));
           if (getCentralityEstimator(collision1, false) < configCollision.minCentrality || getCentralityEstimator(collision1, false) >= configCollision.maxCentrality) {
             continue;
           }
